@@ -1,7 +1,12 @@
 package service
 
 import (
+	"chat/cache"
+	"chat/pkg/e"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -98,9 +103,70 @@ func Handler(c *gin.Context) {
 }
 
 func (c *Client) Read() {
+	defer func() {
+		Manager.Unregister <- c //修改状态为关闭状态
+		_ = c.Socket.Close()    //关闭socket
+	}()
+
+	for {
+		c.Socket.PongHandler()
+		SendMsg := new(SendMsg)
+
+		err := c.Socket.ReadJSON(&SendMsg)
+		if err != nil {
+			fmt.Println("数据格式不正确", err)
+			Manager.Unregister <- c
+			_ = c.Socket.Close() //关闭socket
+			break
+		}
+
+		if SendMsg.Type == 1 { //发送消息
+			r1, _ := cache.RedisClient.Get(c.ID).Result()
+			r2, _ := cache.RedisClient.Get(c.SendId).Result()
+
+			//发送消息超过3条,对方没有看到,停止1发送
+			if r1 > "3" && r2 == "" {
+				ReplyMsg := ReplyMsg{
+					Code:    e.WebsocketLimit,
+					Content: "发送信息达到限制,请等待对方回复",
+				}
+				msg, _ := json.Marshal(ReplyMsg)
+				_ = c.Socket.WriteMessage(websocket.TextMessage, msg)
+				continue
+			}
+		} else {
+			cache.RedisClient.Incr(c.ID)
+			_, _ = cache.RedisClient.Expire(c.ID, time.Hour*24*30*3).Result()
+		}
+
+		Manager.Broadcast <- &BroadCast{
+			Client:  c,
+			Message: []byte(SendMsg.Content),
+		}
+
+	}
 
 }
 
 func (c *Client) Write() {
+	defer func() {
+		_ = c.Socket.Close()
+	}()
 
+	for {
+		select {
+		case message, ok := <-c.Send:
+			if !ok {
+				_ = c.Socket.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+			ReplyMsg := ReplyMsg{
+				Code:    e.WebsocketSucessMessage,
+				Content: fmt.Sprintf("%s", string(message)),
+			}
+			msg, _ := json.Marshal(ReplyMsg)
+			_ = c.Socket.WriteMessage(websocket.TextMessage, msg)
+
+		}
+	}
 }

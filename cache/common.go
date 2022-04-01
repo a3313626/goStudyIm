@@ -19,7 +19,7 @@ var (
 
 func init() {
 	//从本地读取环境
-	file, err := ini.Load("./config/config.ini")
+	file, err := ini.Load("./conf/config.ini")
 	if err != nil {
 		fmt.Println("初始化redis配置文件失败", err)
 	}
