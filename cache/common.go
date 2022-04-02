@@ -38,6 +38,7 @@ func LoadRedis(file *ini.File) {
 	RedisDbName = file.Section("redis").Key("RedisDbName").String()
 }
 
+//链接redis
 func Redis() {
 	db, _ := strconv.ParseUint(RedisDbName, 10, 64)
 	client := redis.NewClient(&redis.Options{

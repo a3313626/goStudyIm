@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+//这里对错误提示进行了一次封装
 func ErrorResponse(err error) serializer.Response {
 	if _, ok := err.(validator.ValidationErrors); ok {
 		return serializer.Response{

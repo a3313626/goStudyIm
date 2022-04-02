@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//用户注册
 func UserRegister(c *gin.Context) {
 	var service service.UserRegisterService
 	if err := c.ShouldBind(&service); err == nil {
