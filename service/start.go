@@ -61,7 +61,7 @@ func (manager *ClientManager) Start() {
 			if flag {
 				replyMsg := &ReplyMsg{
 					Code:    e.WebsocketEnd,
-					Content: "对方在线应答",
+					Content: "对方在线,请等待对方回复",
 				}
 				msg, _ := json.Marshal(replyMsg)
 				_ = broadcast.Client.Socket.WriteMessage(websocket.TextMessage, msg)

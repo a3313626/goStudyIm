@@ -2,10 +2,12 @@ package service
 
 import (
 	"chat/cache"
+	"chat/conf"
 	"chat/pkg/e"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -136,6 +138,36 @@ func (c *Client) Read() {
 			} else {
 				cache.RedisClient.Incr(c.ID)
 				_, _ = cache.RedisClient.Expire(c.ID, time.Hour*24*30*3).Result()
+			}
+
+		} else if SendMsg.Type == 2 { //获取历史消息
+			
+			timeT, err := strconv.Atoi(SendMsg.Content) //string To int
+			if err != nil {
+				timeT = 9999999
+			}
+
+			results, _ := FindMany(conf.MongoDBName, c.SendId, c.ID, int64(timeT), 10)
+
+			if len(results) > 10 {
+				results = results[:10]
+			} else if len(results) == 0 {
+				ReplyMsg := ReplyMsg{
+					Code:    e.WebsocketEnd,
+					Content: "没有更多消息",
+				}
+				msg, _ := json.Marshal(ReplyMsg)
+				_ = c.Socket.WriteMessage(websocket.TextMessage, msg)
+				continue
+			}
+
+			for _, result := range results {
+				ReplyMsg := ReplyMsg{
+					From:    result.From,
+					Content: result.Msg,
+				}
+				msg, _ := json.Marshal(ReplyMsg)
+				_ = c.Socket.WriteMessage(websocket.TextMessage, msg)
 			}
 
 		}
