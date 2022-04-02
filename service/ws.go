@@ -72,7 +72,7 @@ func CreateID(uid, toUid string) string {
 }
 
 func Handler(c *gin.Context) {
-	uid := c.Query("id")
+	uid := c.Query("uid")
 	toUid := c.Query("toUid")
 
 	conn, err := (&websocket.Upgrader{
@@ -133,10 +133,11 @@ func (c *Client) Read() {
 				msg, _ := json.Marshal(ReplyMsg)
 				_ = c.Socket.WriteMessage(websocket.TextMessage, msg)
 				continue
+			} else {
+				cache.RedisClient.Incr(c.ID)
+				_, _ = cache.RedisClient.Expire(c.ID, time.Hour*24*30*3).Result()
 			}
-		} else {
-			cache.RedisClient.Incr(c.ID)
-			_, _ = cache.RedisClient.Expire(c.ID, time.Hour*24*30*3).Result()
+
 		}
 
 		Manager.Broadcast <- &BroadCast{

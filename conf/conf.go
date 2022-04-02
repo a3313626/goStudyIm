@@ -26,11 +26,12 @@ var (
 	RedisPw     string
 	RedisDbName string
 
-	MongoDBName   string
-	MongoDBAddr   string
-	MongoDBPwd    string
-	MongoDBPort   string
-	MongoDBClient *mongo.Client
+	MongoDBName     string
+	MongoDBAddr     string
+	MongoDBPwd      string
+	MongoDBPort     string
+	MongoDBUserName string
+	MongoDBClient   *mongo.Client
 )
 
 func Init() {
@@ -52,7 +53,7 @@ func Init() {
 }
 
 func MongoDB() {
-	clientOptions := options.Client().ApplyURI("mongodb://" + MongoDBAddr + ":" + MongoDBPort)
+	clientOptions := options.Client().ApplyURI("mongodb://" + MongoDBUserName + ":" + MongoDBPwd + "@" + MongoDBAddr + ":" + MongoDBPort)
 
 	var err error
 	MongoDBClient, err = mongo.Connect(context.TODO(), clientOptions)
@@ -83,4 +84,5 @@ func LoadMongoDB(file *ini.File) {
 	MongoDBAddr = file.Section("MongoDB").Key("MongoDBAddr").String()
 	MongoDBPwd = file.Section("MongoDB").Key("MongoDBPwd").String()
 	MongoDBPort = file.Section("MongoDB").Key("MongoDBPort").String()
+	MongoDBUserName = file.Section("MongoDB").Key("MongoDBUserName").String()
 }
